@@ -546,17 +546,25 @@
 // AUTH
 // ============================================================
 const PASSWORD = 'izzy@2026';
+const SSO_TOKEN = 'JARVIS_SSO_2026';
+function unlockApp() {
+  document.getElementById('auth-gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  updateAll();
+  calcA(); calcB();
+  document.getElementById('last-updated').textContent = 'Last updated: June 1, 2026';
+}
+function checkSSOOnLoad() {
+  const params = new URLSearchParams(window.location.search);
+  if (localStorage.getItem('j_sso') === SSO_TOKEN || params.get('sso') === SSO_TOKEN) {
+    if (params.get('sso') === SSO_TOKEN) localStorage.setItem('j_sso', SSO_TOKEN);
+    unlockApp();
+  }
+}
 function checkAuth() {
   const pw = document.getElementById('pw-input').value;
-  if (pw === PASSWORD) {
-    document.getElementById('auth-gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    updateAll();
-    calcA(); calcB();
-    document.getElementById('last-updated').textContent = 'Last updated: June 1, 2026';
-  } else {
-    document.getElementById('auth-error').style.display = 'block';
-  }
+  if (pw === PASSWORD) { unlockApp(); }
+  else { document.getElementById('auth-error').style.display = 'block'; }
 }
 function logout() {
   document.getElementById('auth-gate').style.display = 'flex';
@@ -890,6 +898,8 @@ function calcB() {
   document.getElementById('b-royalty').textContent = rate === 0 ? '$0.00 (none)' : '$' + royalty.toFixed(2) + ` (${(rate*100)}%)`;
   document.getElementById('b-true-gm').textContent = trueGM.toFixed(1) + '%';
 }
+
+document.addEventListener('DOMContentLoaded', checkSSOOnLoad);
 </script>
 
 </body>
