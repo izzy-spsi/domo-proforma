@@ -217,6 +217,44 @@
     .scenario-grid { grid-template-columns: 1fr; }
     .calc-grid { grid-template-columns: 1fr; }
   }
+  /* ── NAV TABS ── */
+  .app-nav { display:flex; gap:0; background:var(--brown); border-bottom:3px solid #6B3410; padding:0 24px; }
+  .app-nav-tab { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; color:rgba(255,255,255,.6); padding:10px 20px; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-3px; transition:color .2s,border-color .2s; letter-spacing:.03em; }
+  .app-nav-tab:hover { color:rgba(255,255,255,.9); }
+  .app-nav-tab.active { color:#fff; border-bottom-color:#F5C97A; }
+
+  /* ── MENU PAGE ── */
+  .menu-page { padding:24px; display:none; }
+  .menu-page.active { display:block; }
+  .menu-section { background:#fff; border:1px solid var(--border); border-radius:10px; margin-bottom:20px; overflow:hidden; }
+  .menu-section-hdr { background:var(--bg); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .menu-section-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; color:var(--brown); text-transform:uppercase; letter-spacing:.06em; }
+  .menu-section-avg { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+  .menu-tbl { width:100%; border-collapse:collapse; }
+  .menu-tbl th { padding:9px 16px; font-size:11px; font-family:'Space Grotesk',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--bg); border-bottom:1px solid var(--border); text-align:left; }
+  .menu-tbl th:not(:first-child) { text-align:right; }
+  .menu-tbl td { padding:9px 16px; font-size:13px; border-bottom:1px solid var(--border); }
+  .menu-tbl td:not(:first-child) { text-align:right; font-family:'JetBrains Mono',monospace; font-size:12px; }
+  .menu-tbl tr:last-child td { border-bottom:none; }
+  .menu-tbl tr:hover td { background:#FAF7F4; }
+  .menu-input { width:72px; text-align:right; border:1px solid var(--border); border-radius:5px; padding:4px 6px; font-family:'JetBrains Mono',monospace; font-size:12px; background:#fff; }
+  .menu-input:focus { outline:none; border-color:var(--brown); }
+  .gm-high { color:#1a7a1a; font-weight:700; }
+  .gm-mid  { color:#2a7a2a; font-weight:600; }
+  .gm-low  { color:#cc7a00; font-weight:600; }
+  .gm-warn { color:#cc2222; font-weight:600; }
+  .star    { color:#C9952A; }
+  .menu-tbl tr.subtotal-row td { background:#FDF8F5; font-weight:700; font-size:12px; border-top:2px solid var(--border); }
+  .sync-bar { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .sync-bar-text { font-size:13px; color:var(--text); }
+  .sync-bar-text strong { font-family:'Space Grotesk',sans-serif; }
+  .sync-btn { background:var(--brown); color:#fff; border:none; border-radius:6px; padding:8px 20px; font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; cursor:pointer; letter-spacing:.04em; }
+  .sync-btn:hover { opacity:.88; }
+  .sync-status { font-size:11px; color:#1a7a1a; font-family:'JetBrains Mono',monospace; opacity:0; transition:opacity .5s; }
+  .sync-status.show { opacity:1; }
+  .free-tag { color:var(--muted); font-size:11px; }
+  .tbd-tag  { color:#cc7a00; font-size:11px; font-style:italic; }
+
 </style>
 </head>
 <body>
@@ -239,7 +277,7 @@
   <div class="header">
     <div class="header-left">
       <div class="header-logo">🍡 Domo Cafe</div>
-      <div class="header-badge">Pro Forma Portal <span style="font-size:10px;opacity:0.6;font-family:monospace;margin-left:6px">v1.2.0</span></div>
+      <div class="header-badge">Pro Forma Portal <span style="font-size:10px;opacity:0.6;font-family:monospace;margin-left:6px">v1.3.0</span></div>
     </div>
     <div class="header-right">
       <span>GFC BP LLC</span>
@@ -250,6 +288,14 @@
     </div>
   </div>
 
+
+  <!-- NAV TABS -->
+  <div class="app-nav">
+    <div class="app-nav-tab active" id="tab-proforma" onclick="switchTab('proforma')">📊 Pro Forma</div>
+    <div class="app-nav-tab" id="tab-menu" onclick="switchTab('menu')">🍽 Menu</div>
+  </div>
+
+  <div id="page-proforma" class="proforma-page">
   <div class="main">
 
     <!-- SIDEBAR: CONFIGURATOR -->
@@ -580,7 +626,7 @@
 
       <!-- FOOTER -->
       <div class="footer">
-        GFC BP LLC — Domo Cafe · Confidential Pro Forma · Buena Park, CA · v1.2.0
+        GFC BP LLC — Domo Cafe · Confidential Pro Forma · Buena Park, CA · v1.3.0
         <br>Built by Jarvis / Super Power Studios · <span id="last-updated"></span>
       </div>
 
@@ -944,6 +990,124 @@ function calcB() {
   document.getElementById('b-gp').textContent = '$' + gp.toFixed(2);
   document.getElementById('b-royalty').textContent = rate === 0 ? '$0.00 (none)' : '$' + royalty.toFixed(2) + ` (${(rate*100)}%)`;
   document.getElementById('b-true-gm').textContent = trueGM.toFixed(1) + '%';
+}
+
+
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  document.getElementById('page-proforma').style.display = tab === 'proforma' ? '' : 'none';
+  document.getElementById('page-menu').style.display = tab === 'menu' ? 'block' : 'none';
+  document.getElementById('tab-proforma').classList.toggle('active', tab === 'proforma');
+  document.getElementById('tab-menu').classList.toggle('active', tab === 'menu');
+  if (tab === 'menu') initMenuPage();
+}
+
+// ── MARGIN COLOR ──
+function gmClass(pct) {
+  if (pct >= 80) return 'gm-high';
+  if (pct >= 70) return 'gm-mid';
+  if (pct >= 60) return 'gm-low';
+  return 'gm-warn';
+}
+
+// ── RECALC A SINGLE ROW ──
+function recalcRow(input) {
+  const tr = input.closest('tr');
+  const inputs = tr.querySelectorAll('.menu-input');
+  const price = parseFloat(inputs[0]?.value) || 0;
+  const cost  = parseFloat(inputs[1]?.value) || 0;
+  const costPct = price > 0 ? (cost / price * 100) : 0;
+  const mgn = price - cost;
+  const mgnPct = price > 0 ? (mgn / price * 100) : 0;
+  tr.querySelector('.cost-pct').textContent = costPct.toFixed(1) + '%';
+  tr.querySelector('.margin-d').textContent = '$' + mgn.toFixed(2);
+  const mEl = tr.querySelector('.margin-pct');
+  mEl.textContent = mgnPct.toFixed(1) + '%';
+  mEl.className = 'margin-pct ' + gmClass(mgnPct);
+  recalcSection(tr.closest('tbody'));
+  autoSync();
+}
+
+// ── RECALC SECTION SUBTOTAL ──
+function recalcSection(tbody) {
+  const rows = tbody.querySelectorAll('tr[data-cat]');
+  let sumP = 0, sumC = 0, n = 0;
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('.menu-input');
+    const p = parseFloat(inputs[0]?.value) || 0;
+    const c = parseFloat(inputs[1]?.value) || 0;
+    if (p > 0) { sumP += p; sumC += c; n++; }
+  });
+  const sub = tbody.querySelector('.subtotal-row');
+  if (!sub || n === 0) return;
+  const avgP = sumP / n, avgC = sumC / n;
+  const avgCpct = avgP > 0 ? avgC / avgP * 100 : 0;
+  const avgMgn = avgP - avgC;
+  const avgMgnPct = avgP > 0 ? avgMgn / avgP * 100 : 0;
+  sub.querySelector('.sub-price').textContent = '$' + avgP.toFixed(2);
+  sub.querySelector('.sub-cost').textContent = '$' + avgC.toFixed(2);
+  sub.querySelector('.sub-cpct').textContent = avgCpct.toFixed(1) + '%';
+  sub.querySelector('.sub-mgnd').textContent = '$' + avgMgn.toFixed(2);
+  const mEl = sub.querySelector('.sub-mgnpct');
+  mEl.textContent = avgMgnPct.toFixed(1) + '%';
+  mEl.className = 'sub-mgnpct ' + gmClass(avgMgnPct);
+}
+
+// ── INIT MENU PAGE (first open) ──
+function initMenuPage() {
+  document.querySelectorAll('#page-menu tr[data-cat]').forEach(tr => {
+    const inputs = tr.querySelectorAll('.menu-input');
+    if (inputs.length >= 2) recalcRow(inputs[0]);
+  });
+}
+
+// ── GET CATEGORY AVG ──
+function getCatAvg(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return 0;
+  const rows = tbody.querySelectorAll('tr[data-cat]');
+  let sum = 0, n = 0;
+  rows.forEach(r => {
+    const p = parseFloat(r.querySelectorAll('.menu-input')[0]?.value) || 0;
+    if (p > 0) { sum += p; n++; }
+  });
+  return n > 0 ? sum / n : 0;
+}
+
+function getBlendedEntreeAvg() {
+  const bodies = ['tbody-plates', 'tbody-handhelds', 'tbody-kids'];
+  let sum = 0, n = 0;
+  bodies.forEach(id => {
+    const tbody = document.getElementById(id);
+    if (!tbody) return;
+    tbody.querySelectorAll('tr[data-cat]').forEach(r => {
+      const p = parseFloat(r.querySelectorAll('.menu-input')[0]?.value) || 0;
+      if (p > 0) { sum += p; n++; }
+    });
+  });
+  return n > 0 ? sum / n : 15.75;
+}
+
+// ── AUTO SYNC ──
+let syncTimer;
+function autoSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToProforma, 1200);
+}
+
+function syncToProforma() {
+  const entreeAvg = getBlendedEntreeAvg();
+  const drinkAvg  = getCatAvg('tbody-drinks');
+  const dessertAvg = getCatAvg('tbody-sweets');
+  const ep = document.getElementById('entree-price');
+  const dp = document.getElementById('drinks-price');
+  const dsp = document.getElementById('dessert-price');
+  if (ep) ep.value = entreeAvg.toFixed(2);
+  if (dp && drinkAvg > 0) dp.value = drinkAvg.toFixed(2);
+  if (dsp && dessertAvg > 0) dsp.value = dessertAvg.toFixed(2);
+  if (typeof updateAll === 'function') updateAll();
+  const st = document.getElementById('sync-status');
+  if (st) { st.classList.add('show'); setTimeout(() => st.classList.remove('show'), 2000); }
 }
 
 document.addEventListener('DOMContentLoaded', checkSSOOnLoad);
