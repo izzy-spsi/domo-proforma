@@ -632,6 +632,275 @@
 
     </div>
   </div>
+
+  <!-- ── MENU TAB ── -->
+  <div id="page-menu" class="menu-page">
+    <div style="max-width:960px;margin:0 auto">
+
+      <!-- header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--brown)">🍽 Menu Economics</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Edit prices &amp; food costs — changes auto-sync to Pro Forma sliders</div>
+        </div>
+        <div id="sync-status" class="sync-status">✅ Synced to Pro Forma</div>
+      </div>
+
+      <!-- SIGNATURE PLATES -->
+      <div class="margin-calc" style="margin-bottom:20px">
+        <div class="margin-calc-header"><div class="section-title" style="margin-bottom:0">Signature Plates</div></div>
+        <div class="margin-calc-body" style="padding:0">
+          <table class="pl-table menu-tbl" style="font-size:12px">
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right">Price ($)</th>
+              <th style="text-align:right">Food Cost ($)</th>
+              <th style="text-align:right">Cost %</th>
+              <th style="text-align:right">Margin $</th>
+              <th style="text-align:right">Margin %</th>
+            </tr></thead>
+            <tbody id="tbody-plates">
+              <tr data-cat="plates">
+                <td>Domo Moco</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="15.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="3.47" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="plates">
+                <td>Golden Katsu Curry</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="16.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="3.64" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="plates">
+                <td>Creamy Mushroom Pasta <span style="color:#1a7a1a;font-size:10px">★ Best Margin</span></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="16.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="1.70" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td>Section Avg</td>
+                <td style="text-align:right" class="sub-price">—</td>
+                <td style="text-align:right" class="sub-cost">—</td>
+                <td style="text-align:right" class="sub-cpct">—</td>
+                <td style="text-align:right" class="sub-mgnd">—</td>
+                <td style="text-align:right" class="sub-mgnpct">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HANDHELDS -->
+      <div class="margin-calc" style="margin-bottom:20px">
+        <div class="margin-calc-header"><div class="section-title" style="margin-bottom:0">Handhelds</div></div>
+        <div class="margin-calc-body" style="padding:0">
+          <table class="pl-table menu-tbl" style="font-size:12px">
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right">Price ($)</th>
+              <th style="text-align:right">Food Cost ($)</th>
+              <th style="text-align:right">Cost %</th>
+              <th style="text-align:right">Margin $</th>
+              <th style="text-align:right">Margin %</th>
+            </tr></thead>
+            <tbody id="tbody-handhelds">
+              <tr data-cat="handhelds">
+                <td>Domo Boss Burger</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="17.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="4.49" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="handhelds">
+                <td>Kimchi Katsu Sandwich</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="17.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="4.41" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="handhelds">
+                <td>Domo's Street Dog</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="17.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="5.06" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td>Section Avg</td>
+                <td style="text-align:right" class="sub-price">—</td>
+                <td style="text-align:right" class="sub-cost">—</td>
+                <td style="text-align:right" class="sub-cpct">—</td>
+                <td style="text-align:right" class="sub-mgnd">—</td>
+                <td style="text-align:right" class="sub-mgnpct">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KIDS -->
+      <div class="margin-calc" style="margin-bottom:20px">
+        <div class="margin-calc-header"><div class="section-title" style="margin-bottom:0">Kids Menu</div></div>
+        <div class="margin-calc-body" style="padding:0">
+          <table class="pl-table menu-tbl" style="font-size:12px">
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right">Price ($)</th>
+              <th style="text-align:right">Food Cost ($)</th>
+              <th style="text-align:right">Cost %</th>
+              <th style="text-align:right">Margin $</th>
+              <th style="text-align:right">Margin %</th>
+            </tr></thead>
+            <tbody id="tbody-kids">
+              <tr data-cat="kids">
+                <td>Korean Fried Chicken</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="15.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="3.34" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="kids">
+                <td>Domo's Lunch Box</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="13.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="4.08" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td>Section Avg</td>
+                <td style="text-align:right" class="sub-price">—</td>
+                <td style="text-align:right" class="sub-cost">—</td>
+                <td style="text-align:right" class="sub-cpct">—</td>
+                <td style="text-align:right" class="sub-mgnd">—</td>
+                <td style="text-align:right" class="sub-mgnpct">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DRINKS -->
+      <div class="margin-calc" style="margin-bottom:20px">
+        <div class="margin-calc-header"><div class="section-title" style="margin-bottom:0">Drinks</div></div>
+        <div class="margin-calc-body" style="padding:0">
+          <table class="pl-table menu-tbl" style="font-size:12px">
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right">Price ($)</th>
+              <th style="text-align:right">Cost ($)</th>
+              <th style="text-align:right">Cost %</th>
+              <th style="text-align:right">Margin $</th>
+              <th style="text-align:right">Margin %</th>
+            </tr></thead>
+            <tbody id="tbody-drinks">
+              <tr data-cat="drinks">
+                <td>Domo Signature Lemonade</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="7.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="0.95" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="drinks">
+                <td>Matcha Latte</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="7.50" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="1.10" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="drinks">
+                <td>Boba / Specialty Drink</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="7.50" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="1.20" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td>Section Avg</td>
+                <td style="text-align:right" class="sub-price">—</td>
+                <td style="text-align:right" class="sub-cost">—</td>
+                <td style="text-align:right" class="sub-cpct">—</td>
+                <td style="text-align:right" class="sub-mgnd">—</td>
+                <td style="text-align:right" class="sub-mgnpct">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SWEETS / DESSERTS -->
+      <div class="margin-calc" style="margin-bottom:20px">
+        <div class="margin-calc-header"><div class="section-title" style="margin-bottom:0">Desserts &amp; Sweets</div></div>
+        <div class="margin-calc-body" style="padding:0">
+          <table class="pl-table menu-tbl" style="font-size:12px">
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right">Price ($)</th>
+              <th style="text-align:right">Cost ($)</th>
+              <th style="text-align:right">Cost %</th>
+              <th style="text-align:right">Margin $</th>
+              <th style="text-align:right">Margin %</th>
+            </tr></thead>
+            <tbody id="tbody-sweets">
+              <tr data-cat="sweets">
+                <td>Domo Parfait</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="11.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="2.20" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="sweets">
+                <td>Mochi Ice Cream</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="9.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="2.50" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr data-cat="sweets">
+                <td>Domo Waffle Toast</td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="12.00" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right"><input class="menu-input" type="number" value="2.80" step="0.01" oninput="recalcRow(this)"></td>
+                <td style="text-align:right" class="cost-pct">—</td>
+                <td style="text-align:right" class="margin-d">—</td>
+                <td style="text-align:right" class="margin-pct">—</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td>Section Avg</td>
+                <td style="text-align:right" class="sub-price">—</td>
+                <td style="text-align:right" class="sub-cost">—</td>
+                <td style="text-align:right" class="sub-cpct">—</td>
+                <td style="text-align:right" class="sub-mgnd">—</td>
+                <td style="text-align:right" class="sub-mgnpct">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FOOTER NOTE -->
+      <div style="font-size:11px;color:var(--muted);padding:12px 0 24px;border-top:1px solid var(--border);margin-top:4px">
+        ★ Best margin item &nbsp;·&nbsp; Food costs from June 2026 grand opening menu &nbsp;·&nbsp; NHK royalty not included in item margins &nbsp;·&nbsp; Changes auto-sync to Pro Forma price inputs
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <script>
