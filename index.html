@@ -346,7 +346,7 @@
         </div>
         <div class="mini-input-wrap">
           <div class="mini-label">Merch blended</div>
-          <input class="mini-input" type="number" id="merch-price" value="13" oninput="updateAll()">
+          <input class="mini-input" type="number" id="merch-price" value="16.50" oninput="updateAll()">
         </div>
       </div>
 
@@ -354,16 +354,16 @@
       <div class="sidebar-title">Merch Mix</div>
       <div class="mini-inputs">
         <div class="mini-input-wrap">
-          <div class="mini-label">Small $8 (%)</div>
+          <div class="mini-label">Small $9 (%)</div>
           <input class="mini-input" type="number" id="merch-small-pct" value="50" oninput="updateMerchBlend()">
         </div>
         <div class="mini-input-wrap">
-          <div class="mini-label">Med $15 (%)</div>
-          <input class="mini-input" type="number" id="merch-med-pct" value="35" oninput="updateMerchBlend()">
+          <div class="mini-label">Med $20 (%)</div>
+          <input class="mini-input" type="number" id="merch-med-pct" value="30" oninput="updateMerchBlend()">
         </div>
         <div class="mini-input-wrap">
-          <div class="mini-label">Large $22 (%)</div>
-          <input class="mini-input" type="number" id="merch-lg-pct" value="15" oninput="updateMerchBlend()">
+          <div class="mini-label">Large $31 (%)</div>
+          <input class="mini-input" type="number" id="merch-lg-pct" value="20" oninput="updateMerchBlend()">
         </div>
       </div>
 
@@ -1193,7 +1193,7 @@ function updateMerchBlend() {
   const s = parseFloat(document.getElementById('merch-small-pct').value) || 0;
   const m = parseFloat(document.getElementById('merch-med-pct').value) || 0;
   const l = parseFloat(document.getElementById('merch-lg-pct').value) || 0;
-  const blend = (s / 100 * 8) + (m / 100 * 15) + (l / 100 * 22);
+  const blend = (s / 100 * 9) + (m / 100 * 20) + (l / 100 * 31);
   document.getElementById('merch-price').value = blend.toFixed(2);
   updateAll();
 }
