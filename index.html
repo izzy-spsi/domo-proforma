@@ -293,6 +293,7 @@
   <div class="app-nav">
     <div class="app-nav-tab active" id="tab-proforma" onclick="switchTab('proforma')">📊 Pro Forma</div>
     <div class="app-nav-tab" id="tab-menu" onclick="switchTab('menu')">🍽 Menu</div>
+    <div class="app-nav-tab" id="tab-actuals" onclick="switchTab('actuals')">📈 Actuals</div>
   </div>
 
   <div id="page-proforma" class="proforma-page">
@@ -1266,9 +1267,12 @@ function calcB() {
 function switchTab(tab) {
   document.getElementById('page-proforma').style.display = tab === 'proforma' ? '' : 'none';
   document.getElementById('page-menu').style.display = tab === 'menu' ? 'block' : 'none';
+  document.getElementById('page-actuals').style.display = tab === 'actuals' ? 'block' : 'none';
   document.getElementById('tab-proforma').classList.toggle('active', tab === 'proforma');
   document.getElementById('tab-menu').classList.toggle('active', tab === 'menu');
+  document.getElementById('tab-actuals').classList.toggle('active', tab === 'actuals');
   if (tab === 'menu') initMenuPage();
+  if (tab === 'actuals') initActuals();
 }
 
 // ── MARGIN COLOR ──
@@ -1380,6 +1384,515 @@ function syncToProforma() {
 }
 
 document.addEventListener('DOMContentLoaded', checkSSOOnLoad);
+
+// ═══════════════════════════════════════════════════════════════
+// ACTUALS TAB
+// ═══════════════════════════════════════════════════════════════
+const API_BASE = 'https://geopulse-ai-production.up.railway.app/api/domo/actuals';
+const PROJ_DAILY_LUNCH  = 1550;  // Base scenario lunch projection
+const PROJ_DAILY_DINNER = 2340;  // Base scenario dinner projection
+const PROJ_DAILY_TOTAL  = PROJ_DAILY_LUNCH + PROJ_DAILY_DINNER;
+
+let actualsLoaded = false;
+let actualsData   = null;
+let chartData     = null;
+
+function initActuals() {
+  if (actualsLoaded) return;
+  actualsLoaded = true;
+  loadActuals();
+}
+
+async function loadActuals(forceDate) {
+  const picker = document.getElementById('act-date-picker');
+  const date   = forceDate || (picker ? picker.value : null) || todayPDT();
+  setActualsLoading(true);
+  try {
+    const [dayRes, rangeRes] = await Promise.all([
+      fetch(`${API_BASE}?date=${date}`).then(r => r.json()),
+      fetch(`${API_BASE}?range=7`).then(r => r.json()),
+    ]);
+    actualsData = dayRes;
+    chartData   = rangeRes.range || [];
+    renderActuals(date);
+  } catch(e) {
+    document.getElementById('act-error').style.display = 'block';
+    document.getElementById('act-error').textContent = 'Could not load actuals: ' + e.message;
+  } finally {
+    setActualsLoading(false);
+  }
+}
+
+function todayPDT() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+function setActualsLoading(on) {
+  document.getElementById('act-spinner').style.display = on ? 'flex' : 'none';
+  document.getElementById('act-content').style.display = on ? 'none'  : 'block';
+}
+
+function fmt$(n)   { return '$' + (n||0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+function fmtPct(n) { return ((n||0)*100).toFixed(1) + '%'; }
+function variance(actual, proj) {
+  if (!proj) return { pct: 0, label: '—', cls: '' };
+  const pct = (actual - proj) / proj * 100;
+  const sign = pct >= 0 ? '+' : '';
+  const cls  = pct >= 5 ? 'act-pos' : pct <= -5 ? 'act-neg' : 'act-neu';
+  return { pct, label: sign + pct.toFixed(1) + '%', cls };
+}
+
+function renderActuals(date) {
+  const d = actualsData;
+  if (!d || d.error) {
+    document.getElementById('act-error').style.display = 'block';
+    document.getElementById('act-error').textContent = d?.error || 'No data';
+    return;
+  }
+
+  document.getElementById('act-sync-time').textContent =
+    'Synced ' + new Date(d.syncedAt).toLocaleString('en-US', { timeZone:'America/Los_Angeles', month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+
+  // ── Revenue cards ──
+  const rows = [
+    { id: 'lunch',  label: 'Lunch',  data: d.lunch,  proj: PROJ_DAILY_LUNCH  },
+    { id: 'dinner', label: 'Dinner', data: d.dinner, proj: PROJ_DAILY_DINNER },
+    { id: 'total',  label: 'Total',  data: d.total,  proj: PROJ_DAILY_TOTAL  },
+  ];
+
+  rows.forEach(({ id, data, proj }) => {
+    const v = variance(data.revenue, proj);
+    setEl(`act-rev-${id}`,    fmt$(data.revenue));
+    setEl(`act-proj-${id}`,   fmt$(proj));
+    setEl(`act-var-${id}`,    v.label);
+    setEl(`act-orders-${id}`, data.orders);
+    setEl(`act-avg-${id}`,    fmt$(data.avgCheck));
+    const varEl = document.getElementById(`act-var-${id}`);
+    if (varEl) { varEl.className = 'act-variance ' + v.cls; }
+  });
+
+  // ── Attach rates ──
+  ['lunch','dinner','total'].forEach(dp => {
+    const a = d[dp].attach;
+    setEl(`act-att-drink-${dp}`,   fmtPct(a.drink));
+    setEl(`act-att-dessert-${dp}`, fmtPct(a.dessert));
+    setEl(`act-att-kids-${dp}`,    fmtPct(a.kids));
+    setEl(`act-att-items-${dp}`,   (a.avgItems||0).toFixed(1));
+    // merch attach
+    const ma = d[dp].merch.attach;
+    const maEl = document.getElementById(`act-att-merch-${dp}`);
+    if (maEl) maEl.textContent = fmtPct(ma.rate) + ' est.';
+  });
+
+  // ── Merch standalone ──
+  ['lunch','dinner','total'].forEach(dp => {
+    const m = d[dp].merch;
+    setEl(`act-merch-rev-${dp}`,   fmt$(m.revenue));
+    setEl(`act-merch-ord-${dp}`,   m.orders);
+    setEl(`act-merch-avg-${dp}`,   fmt$(m.avgTransaction));
+  });
+
+  // ── Top food items ──
+  renderItemTable('act-food-lunch',  d.lunch.topFood);
+  renderItemTable('act-food-dinner', d.dinner.topFood);
+  renderItemTable('act-food-total',  d.total.topFood);
+
+  // ── Top merch items ──
+  renderItemTable('act-merch-lunch',  d.lunch.topMerch);
+  renderItemTable('act-merch-dinner', d.dinner.topMerch);
+  renderItemTable('act-merch-total',  d.total.topMerch);
+
+  // ── 7-day chart ──
+  renderChart();
+}
+
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function renderItemTable(tbodyId, items) {
+  const el = document.getElementById(tbodyId);
+  if (!el) return;
+  if (!items || items.length === 0) {
+    el.innerHTML = '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:16px">No data</td></tr>';
+    return;
+  }
+  const maxUnits = items[0].units || 1;
+  el.innerHTML = items.map((item, i) => `
+    <tr>
+      <td style="font-size:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-right:6px">#${i+1}</span>
+        ${item.name}
+        <div style="margin-top:4px;height:3px;background:var(--border);border-radius:2px">
+          <div style="width:${(item.units/maxUnits*100).toFixed(0)}%;height:3px;background:var(--brown);border-radius:2px"></div>
+        </div>
+      </td>
+      <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">${item.units}</td>
+      <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">${fmt$(item.revenue)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderChart() {
+  const el = document.getElementById('act-chart-bars');
+  if (!el || !chartData || !chartData.length) return;
+  const projPerDay = PROJ_DAILY_TOTAL;
+  const maxRev = Math.max(...chartData.map(d => d.revenue), projPerDay, 1);
+
+  el.innerHTML = chartData.map(d => {
+    const lPct  = (d.lunch.revenue  / maxRev * 100).toFixed(1);
+    const dPct  = (d.dinner.revenue / maxRev * 100).toFixed(1);
+    const pPct  = (projPerDay       / maxRev * 100).toFixed(1);
+    const label = new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'numeric', day:'numeric' });
+    return `
+      <div class="act-chart-col">
+        <div class="act-chart-bars-wrap">
+          <div class="act-chart-proj-line" style="bottom:${pPct}%" title="Projected: ${fmt$(projPerDay)}"></div>
+          <div class="act-chart-bar-dinner" style="height:${dPct}%" title="Dinner: ${fmt$(d.dinner.revenue)}"></div>
+          <div class="act-chart-bar-lunch"  style="height:${lPct}%" title="Lunch: ${fmt$(d.lunch.revenue)}"></div>
+        </div>
+        <div class="act-chart-label">${label}</div>
+        <div class="act-chart-val">${fmt$(d.revenue)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setActualsDaypart(dp) {
+  ['lunch','dinner','total'].forEach(d => {
+    document.querySelectorAll(`.act-dp-pane[data-dp="${d}"]`).forEach(el => {
+      el.style.display = dp === 'all' || d === dp ? '' : 'none';
+    });
+  });
+  document.querySelectorAll('.act-dp-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.dp === dp);
+  });
+}
+
+</script>
+
+<!-- ═══ ACTUALS PAGE ═══════════════════════════════════════════════════ -->
+<div id="page-actuals" style="display:none;padding:24px 32px;max-width:1200px;margin:0 auto">
+
+  <style>
+    .act-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .act-title  { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--brown); }
+    .act-sync   { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:12px; }
+    .act-sync-btn { background:var(--brown); color:#fff; border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; }
+    .act-sync-btn:hover { background:var(--brown-light); }
+    .act-date-input { border:1.5px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; font-family:'DM Sans',sans-serif; color:var(--text); outline:none; }
+    .act-date-input:focus { border-color:var(--brown); }
+
+    /* Spinner */
+    #act-spinner { display:flex; align-items:center; justify-content:center; min-height:300px; flex-direction:column; gap:12px; }
+    .act-spin { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--brown); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Error */
+    #act-error { display:none; background:#FEF2F2; color:var(--danger); border:1px solid #FECACA; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; }
+
+    /* Revenue summary table */
+    .act-rev-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+    .act-rev-table th { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); padding:8px 16px; text-align:right; border-bottom:2px solid var(--border); }
+    .act-rev-table th:first-child { text-align:left; }
+    .act-rev-table td { padding:12px 16px; font-family:'JetBrains Mono',monospace; font-size:13px; text-align:right; border-top:1px solid var(--border); }
+    .act-rev-table td:first-child { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; text-align:left; color:var(--text); }
+    .act-rev-table tr:last-child td { font-weight:700; background:#FDF8F5; font-size:14px; }
+    .act-variance { font-weight:700; padding:2px 8px; border-radius:4px; font-size:12px; }
+    .act-pos { background:#DCFCE7; color:#16A34A; }
+    .act-neg { background:#FEE2E2; color:#DC2626; }
+    .act-neu { background:#F3F4F6; color:#6B7280; }
+
+    /* Section cards */
+    .act-section { background:#fff; border:1px solid var(--border); border-radius:12px; margin-bottom:24px; overflow:hidden; }
+    .act-section-hdr { background:var(--bg); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+    .act-section-title { font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; color:var(--text); }
+    .act-section-body { padding:20px; }
+
+    /* Daypart tabs */
+    .act-dp-tabs { display:flex; gap:4px; }
+    .act-dp-tab { font-size:12px; font-weight:600; padding:4px 12px; border-radius:4px; border:1.5px solid var(--border); background:#fff; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--muted); }
+    .act-dp-tab.active { background:var(--brown); color:#fff; border-color:var(--brown); }
+
+    /* Item tables */
+    .act-item-table { width:100%; border-collapse:collapse; }
+    .act-item-table th { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); padding:8px 12px; text-align:right; border-bottom:1px solid var(--border); }
+    .act-item-table th:first-child { text-align:left; }
+    .act-item-table td { padding:8px 12px; border-top:1px solid var(--border); vertical-align:middle; }
+    .act-item-table tr:hover td { background:#FAF7F4; }
+
+    /* Side-by-side daypart layout */
+    .act-dp-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .act-dp-pane { }
+    .act-dp-label { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--brown); margin-bottom:10px; }
+
+    /* Attach rate grid */
+    .act-attach-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    .act-attach-card { background:var(--bg); border-radius:8px; padding:12px; text-align:center; }
+    .act-attach-val  { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--brown); }
+    .act-attach-lbl  { font-size:11px; color:var(--muted); margin-top:2px; }
+
+    /* Chart */
+    .act-chart-wrap { height:180px; display:flex; align-items:flex-end; gap:8px; padding:0 8px; }
+    .act-chart-col  { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .act-chart-bars-wrap { flex:1; width:100%; position:relative; display:flex; flex-direction:column-reverse; }
+    .act-chart-bar-lunch  { background:var(--brown); width:100%; border-radius:3px 3px 0 0; min-height:2px; }
+    .act-chart-bar-dinner { background:#CC2222; width:100%; min-height:2px; }
+    .act-chart-proj-line  { position:absolute; left:0; right:0; border-top:2px dashed #9CA3AF; }
+    .act-chart-label { font-size:10px; color:var(--muted); text-align:center; white-space:nowrap; }
+    .act-chart-val   { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text); }
+    .act-chart-legend { display:flex; gap:16px; font-size:11px; color:var(--muted); margin-top:8px; }
+    .act-chart-legend span { display:flex; align-items:center; gap:5px; }
+    .act-chart-legend .dot  { width:10px; height:10px; border-radius:2px; }
+    .act-legend-lunch  { background:var(--brown); }
+    .act-legend-dinner { background:#CC2222; }
+    .act-legend-proj   { width:16px; height:2px; border-top:2px dashed #9CA3AF; border-radius:0; }
+  </style>
+
+  <!-- Header -->
+  <div class="act-header">
+    <div class="act-title">📈 Actuals vs Projections</div>
+    <div class="act-sync">
+      <input type="date" id="act-date-picker" class="act-date-input"
+        onchange="actualsLoaded=true; loadActuals(this.value)">
+      <span id="act-sync-time">—</span>
+      <button class="act-sync-btn" onclick="actualsLoaded=true; loadActuals()">↻ Sync Now</button>
+    </div>
+  </div>
+
+  <div id="act-error"></div>
+
+  <!-- Spinner -->
+  <div id="act-spinner">
+    <div class="act-spin"></div>
+    <div style="font-size:13px;color:var(--muted)">Loading Toast data…</div>
+  </div>
+
+  <!-- Content -->
+  <div id="act-content" style="display:none">
+
+    <!-- ① Revenue vs Projected -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">💰 Revenue vs Projected</div>
+        <div style="font-size:11px;color:var(--muted)">Base scenario @ 65% occupancy</div>
+      </div>
+      <div class="act-section-body" style="padding:0">
+        <table class="act-rev-table">
+          <thead><tr>
+            <th>Daypart</th>
+            <th>Actual</th>
+            <th>Projected</th>
+            <th>Variance</th>
+            <th>Orders</th>
+            <th>Avg Check</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td>🌤 Lunch (10a–4p)</td>
+              <td id="act-rev-lunch">—</td>
+              <td id="act-proj-lunch" style="color:var(--muted)">—</td>
+              <td><span id="act-var-lunch" class="act-variance">—</span></td>
+              <td id="act-orders-lunch">—</td>
+              <td id="act-avg-lunch">—</td>
+            </tr>
+            <tr>
+              <td>🌙 Dinner (4p–9p)</td>
+              <td id="act-rev-dinner">—</td>
+              <td id="act-proj-dinner" style="color:var(--muted)">—</td>
+              <td><span id="act-var-dinner" class="act-variance">—</span></td>
+              <td id="act-orders-dinner">—</td>
+              <td id="act-avg-dinner">—</td>
+            </tr>
+            <tr>
+              <td>📊 Full Day</td>
+              <td id="act-rev-total">—</td>
+              <td id="act-proj-total" style="color:var(--muted)">—</td>
+              <td><span id="act-var-total" class="act-variance">—</span></td>
+              <td id="act-orders-total">—</td>
+              <td id="act-avg-total">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ② 7-Day Revenue Chart -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">📅 7-Day Revenue</div>
+        <div class="act-chart-legend">
+          <span><div class="dot act-legend-lunch"></div> Lunch</span>
+          <span><div class="dot act-legend-dinner"></div> Dinner</span>
+          <span><div class="act-legend-proj"></div> Projected</span>
+        </div>
+      </div>
+      <div class="act-section-body">
+        <div class="act-chart-wrap" id="act-chart-bars"></div>
+      </div>
+    </div>
+
+    <!-- ③ Ticket Attach Rates -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">🔗 Ticket Attach Rates</div>
+        <div class="act-dp-tabs">
+          <button class="act-dp-tab active" data-dp="total"  onclick="setAttachView('total')">All Day</button>
+          <button class="act-dp-tab"        data-dp="lunch"  onclick="setAttachView('lunch')">Lunch</button>
+          <button class="act-dp-tab"        data-dp="dinner" onclick="setAttachView('dinner')">Dinner</button>
+        </div>
+      </div>
+      <div class="act-section-body">
+        <div id="attach-view-total">
+          <div class="act-attach-grid">
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-drink-total">—</div><div class="act-attach-lbl">Drink w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-dessert-total">—</div><div class="act-attach-lbl">Dessert w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-kids-total">—</div><div class="act-attach-lbl">Kids w/ Entrée</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-items-total">—</div><div class="act-attach-lbl">Avg Items / Ticket</div></div>
+          </div>
+        </div>
+        <div id="attach-view-lunch" style="display:none">
+          <div class="act-attach-grid">
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-drink-lunch">—</div><div class="act-attach-lbl">Drink w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-dessert-lunch">—</div><div class="act-attach-lbl">Dessert w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-kids-lunch">—</div><div class="act-attach-lbl">Kids w/ Entrée</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-items-lunch">—</div><div class="act-attach-lbl">Avg Items / Ticket</div></div>
+          </div>
+        </div>
+        <div id="attach-view-dinner" style="display:none">
+          <div class="act-attach-grid">
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-drink-dinner">—</div><div class="act-attach-lbl">Drink w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-dessert-dinner">—</div><div class="act-attach-lbl">Dessert w/ Food</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-kids-dinner">—</div><div class="act-attach-lbl">Kids w/ Entrée</div></div>
+            <div class="act-attach-card"><div class="act-attach-val" id="act-att-items-dinner">—</div><div class="act-attach-lbl">Avg Items / Ticket</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ Merch Performance -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">🛍 Merch Performance</div>
+        <div style="font-size:11px;color:var(--muted)">Card-match attach proxy · Chomps will replace with exact data</div>
+      </div>
+      <div class="act-section-body" style="padding:0">
+        <table class="act-rev-table">
+          <thead><tr>
+            <th>Daypart</th>
+            <th>Revenue</th>
+            <th>Transactions</th>
+            <th>Avg Transaction</th>
+            <th>Est. Attach %</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td>🌤 Lunch</td>
+              <td id="act-merch-rev-lunch">—</td>
+              <td id="act-merch-ord-lunch">—</td>
+              <td id="act-merch-avg-lunch">—</td>
+              <td id="act-att-merch-lunch">—</td>
+            </tr>
+            <tr>
+              <td>🌙 Dinner</td>
+              <td id="act-merch-rev-dinner">—</td>
+              <td id="act-merch-ord-dinner">—</td>
+              <td id="act-merch-avg-dinner">—</td>
+              <td id="act-att-merch-dinner">—</td>
+            </tr>
+            <tr>
+              <td>📊 Full Day</td>
+              <td id="act-merch-rev-total">—</td>
+              <td id="act-merch-ord-total">—</td>
+              <td id="act-merch-avg-total">—</td>
+              <td id="act-att-merch-total">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ⑤ Menu Item Performance -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">🍽 Menu Item Performance</div>
+        <div class="act-dp-tabs">
+          <button class="act-dp-tab active" data-dp="total"  onclick="setItemView('food','total')">All Day</button>
+          <button class="act-dp-tab"        data-dp="lunch"  onclick="setItemView('food','lunch')">Lunch</button>
+          <button class="act-dp-tab"        data-dp="dinner" onclick="setItemView('food','dinner')">Dinner</button>
+        </div>
+      </div>
+      <div class="act-section-body" style="padding:0">
+        <div id="food-view-total">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-food-total"></tbody></table>
+        </div>
+        <div id="food-view-lunch" style="display:none">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-food-lunch"></tbody></table>
+        </div>
+        <div id="food-view-dinner" style="display:none">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-food-dinner"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ Merch Item Performance -->
+    <div class="act-section">
+      <div class="act-section-hdr">
+        <div class="act-section-title">📦 Merch Item Performance</div>
+        <div class="act-dp-tabs">
+          <button class="act-dp-tab active" data-dp="total"  onclick="setItemView('merch','total')">All Day</button>
+          <button class="act-dp-tab"        data-dp="lunch"  onclick="setItemView('merch','lunch')">Lunch</button>
+          <button class="act-dp-tab"        data-dp="dinner" onclick="setItemView('merch','dinner')">Dinner</button>
+        </div>
+      </div>
+      <div class="act-section-body" style="padding:0">
+        <div id="merch-view-total">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-merch-total"></tbody></table>
+        </div>
+        <div id="merch-view-lunch" style="display:none">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-merch-lunch"></tbody></table>
+        </div>
+        <div id="merch-view-dinner" style="display:none">
+          <table class="act-item-table"><thead><tr><th>Item</th><th style="text-align:right">Units</th><th style="text-align:right">Revenue</th></tr></thead><tbody id="act-merch-dinner"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);padding:12px 0 32px;text-align:center">
+      Data pulled from Toast POS · Merch attach is a card-match estimate (±2hr window) · Chomps will replace merch attach with exact guest-level data
+    </div>
+
+  </div><!-- /act-content -->
+</div><!-- /page-actuals -->
+
+<script>
+function setAttachView(dp) {
+  ['total','lunch','dinner'].forEach(d => {
+    document.getElementById('attach-view-' + d).style.display = d === dp ? '' : 'none';
+  });
+  document.querySelectorAll('#page-actuals .act-section:nth-of-type(3) .act-dp-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.dp === dp);
+  });
+}
+
+function setItemView(type, dp) {
+  ['total','lunch','dinner'].forEach(d => {
+    const el = document.getElementById(type + '-view-' + d);
+    if (el) el.style.display = d === dp ? '' : 'none';
+  });
+  // Update tab state for the correct section
+  const section = type === 'food' ? 5 : 6;
+  document.querySelectorAll(`#page-actuals .act-section:nth-of-type(${section}) .act-dp-tab`).forEach(t => {
+    t.classList.toggle('active', t.dataset.dp === dp);
+  });
+}
+
+// Set today's date in picker on load
+document.addEventListener('DOMContentLoaded', () => {
+  const picker = document.getElementById('act-date-picker');
+  if (picker) picker.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+});
 </script>
 
 </body>
