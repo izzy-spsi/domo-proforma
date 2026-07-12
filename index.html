@@ -719,17 +719,6 @@
         </tbody></table></div>
       </div>
       <div class="act-section">
-        <div class="act-section-hdr"><div class="act-section-title">&#x1F4B5; Net Sales, Tax &amp; Payment Split</div><div style="font-size:11px;color:var(--muted)">Full-day totals &#x2014; Toast net sales definition (pre-tax subtotal)</div></div>
-        <div style="padding:0"><table class="act-rev-table"><thead><tr><th>Metric</th><th>Amount</th></tr></thead><tbody>
-          <tr><td>&#x1F4B0; Net Sales (pre-tax)</td><td id="act-net-sales-total">&#x2014;</td></tr>
-          <tr><td>&#x1F9FE; Sales Tax</td><td id="act-tax-total">&#x2014;</td></tr>
-          <tr><td>&#x1F4B5; Tips (pass-through, not revenue)</td><td id="act-tip-total">&#x2014;</td></tr>
-          <tr><td>&#x1F4B3; Credit Card</td><td id="act-credit-total">&#x2014;</td></tr>
-          <tr><td>&#x1F4B4; Cash</td><td id="act-cash-total">&#x2014;</td></tr>
-          <tr><td>&#x1F3E2; NHK Royalty (8% of House Merch)</td><td id="act-royalty-total">&#x2014;</td></tr>
-        </tbody></table></div>
-      </div>
-      <div class="act-section">
         <div class="act-section-hdr"><div class="act-section-title">&#x1F4C5; 7-Day Revenue</div>
           <div class="act-chart-legend"><span><div class="dot act-legend-lunch"></div>Lunch</span><span><div class="dot act-legend-dinner"></div>Dinner</span><span><div class="act-legend-proj"></div>Projected</span></div>
         </div>
@@ -1319,7 +1308,7 @@
       <input type="date" id="act-date-picker" class="act-date-input"
         onchange="loadActuals(this.value)">
       <span id="act-sync-time">—</span>
-      <button class="act-sync-btn" onclick="loadActuals()">↻ Sync Now</button>
+      <button class="act-sync-btn" onclick="loadActuals(null,true)">↻ Sync Now</button>
     </div>
   </div>
 
@@ -1440,6 +1429,17 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="act-section">
+        <div class="act-section-hdr"><div class="act-section-title">💵 Net Sales, Tax &amp; Payment Split</div><div style="font-size:11px;color:var(--muted)">Full-day totals — Toast net sales definition (pre-tax subtotal)</div></div>
+        <div style="padding:0"><table class="act-rev-table"><thead><tr><th>Metric</th><th>Amount</th></tr></thead><tbody>
+          <tr><td>💰 Net Sales (pre-tax)</td><td id="act-net-sales-total">—</td></tr>
+          <tr><td>🧾 Sales Tax</td><td id="act-tax-total">—</td></tr>
+          <tr><td>💵 Tips (pass-through, not revenue)</td><td id="act-tip-total">—</td></tr>
+          <tr><td>💳 Credit Card</td><td id="act-credit-total">—</td></tr>
+          <tr><td>💴 Cash</td><td id="act-cash-total">—</td></tr>
+          <tr><td>🏢 NHK Royalty (8% of House Merch)</td><td id="act-royalty-total">—</td></tr>
+        </tbody></table></div>
       </div>
     </div>
 
@@ -2324,16 +2324,22 @@ actualsLoaded=false, actualsData=null, chartData=null;
 
 function initActuals() { if(actualsLoaded) return; actualsLoaded=true; loadActuals(); }
 
-async function loadActuals(forceDate) {
+async function loadActuals(forceDate,doSync) {
   const picker=document.getElementById('act-date-picker');
   const date=forceDate||(picker?picker.value:null)||new Date().toLocaleDateString('en-CA',{timeZone:'America/Los_Angeles'});
   document.getElementById('act-spinner').style.display='flex';
   document.getElementById('act-content').style.display='none';
   document.getElementById('act-error').style.display='none';
   try {
-    const [dayRes,rangeRes]=await Promise.all([fetch(`${API_BASE}?date=${date}`).then(r=>r.json()),fetch(`${API_BASE}?range=7`).then(r=>r.json())]);
+    const dayUrl=doSync?`${API_BASE}?date=${date}&sync=true`:`${API_BASE}?date=${date}`;
+    const [dayRes,rangeRes]=await Promise.all([fetch(dayUrl).then(r=>r.json()),fetch(`${API_BASE}?range=7`).then(r=>r.json())]);
     actualsData=dayRes; chartData=rangeRes.range||[];
     renderActuals(date);
+    if(doSync){
+      const syncEl=document.getElementById('act-sync-time');
+      if(syncEl&&dayRes.dbSynced) syncEl.textContent += ' · ✅ DB updated';
+      else if(syncEl&&dayRes.dbSynced===false) syncEl.textContent += ' · ⚠️ DB write failed';
+    }
   } catch(e) {
     document.getElementById('act-error').style.display='block';
     document.getElementById('act-error').textContent='Could not load actuals: '+e.message;
@@ -2359,6 +2365,12 @@ function renderActuals(date) {
     setEl(`act-orders-${id}`,data.orders);setEl(`act-avg-${id}`,fmt$f(data.avgCheck));
     const ve=document.getElementById(`act-var-${id}`);if(ve){ve.textContent=v.label;ve.className='act-variance '+v.cls;}
   });
+  setEl('act-net-sales-total',fmt$f(d.total.netSales));
+  setEl('act-tax-total',fmt$f(d.total.taxTotal));
+  setEl('act-tip-total',fmt$f(d.total.tipTotal));
+  setEl('act-credit-total',fmt$f(d.total.creditRev));
+  setEl('act-cash-total',fmt$f(d.total.cashRev));
+  setEl('act-royalty-total',fmt$f(d.total.royalties));
   ['lunch','dinner','total'].forEach(dp=>{
     const a=d[dp].attach;
     setEl(`act-att-drink-${dp}`,fmtPct(a.drink));setEl(`act-att-dessert-${dp}`,fmtPct(a.dessert));
