@@ -719,6 +719,17 @@
         </tbody></table></div>
       </div>
       <div class="act-section">
+        <div class="act-section-hdr"><div class="act-section-title">&#x1F4B5; Net Sales, Tax &amp; Payment Split</div><div style="font-size:11px;color:var(--muted)">Full-day totals &#x2014; Toast net sales definition (pre-tax subtotal)</div></div>
+        <div style="padding:0"><table class="act-rev-table"><thead><tr><th>Metric</th><th>Amount</th></tr></thead><tbody>
+          <tr><td>&#x1F4B0; Net Sales (pre-tax)</td><td id="act-net-sales-total">&#x2014;</td></tr>
+          <tr><td>&#x1F9FE; Sales Tax</td><td id="act-tax-total">&#x2014;</td></tr>
+          <tr><td>&#x1F4B5; Tips (pass-through, not revenue)</td><td id="act-tip-total">&#x2014;</td></tr>
+          <tr><td>&#x1F4B3; Credit Card</td><td id="act-credit-total">&#x2014;</td></tr>
+          <tr><td>&#x1F4B4; Cash</td><td id="act-cash-total">&#x2014;</td></tr>
+          <tr><td>&#x1F3E2; NHK Royalty (8% of House Merch)</td><td id="act-royalty-total">&#x2014;</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="act-section">
         <div class="act-section-hdr"><div class="act-section-title">&#x1F4C5; 7-Day Revenue</div>
           <div class="act-chart-legend"><span><div class="dot act-legend-lunch"></div>Lunch</span><span><div class="dot act-legend-dinner"></div>Dinner</span><span><div class="act-legend-proj"></div>Projected</span></div>
         </div>
@@ -2176,6 +2187,14 @@ function renderActuals(date) {
     const varEl = document.getElementById(`act-var-${id}`);
     if (varEl) { varEl.className = 'act-variance ' + v.cls; }
   });
+
+  // ── Net Sales, Tax, Payment Split, Royalty (full-day) ──
+  setEl('act-net-sales-total', fmt$(d.total.netSales));
+  setEl('act-tax-total',       fmt$(d.total.taxTotal));
+  setEl('act-tip-total',       fmt$(d.total.tipTotal));
+  setEl('act-credit-total',    fmt$(d.total.creditRev));
+  setEl('act-cash-total',      fmt$(d.total.cashRev));
+  setEl('act-royalty-total',   fmt$(d.total.royalties));
 
   // ── Attach rates ──
   ['lunch','dinner','total'].forEach(dp => {
